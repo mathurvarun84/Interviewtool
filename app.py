@@ -2,7 +2,7 @@ from openai import OpenAI
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-st.set_page_config(page_title="Streamlit Chat", page_icon="💬")
+st.set_page_config(page_title="StreamlitChatMessageHistory", page_icon="💬")
 st.title("ChatBot")
 
 if "setup_complete" not in st.session_state:
@@ -16,15 +16,18 @@ if "feedback_shown" not in st.session_state:
 if "chat_complete" not in st.session_state:
     st.session_state.chat_complete = False
 
+# Helper functions to update session state
 def complete_setup():
     st.session_state.setup_complete = True
 
 def show_feedback():
     st.session_state.feedback_shown = True
 
+# Setup stage for collecting user details
 if not st.session_state.setup_complete:
     st.subheader("Personal Information", divider="rainbow")
 
+    # Initialize session state for personal information
     if "name" not in st.session_state:
             st.session_state["name"] = ""
     if "age" not in st.session_state:
@@ -33,18 +36,23 @@ if not st.session_state.setup_complete:
             st.session_state["experience"] = ""
     if "skills" not in st.session_state:
             st.session_state["skills"] = ""
+
+   # Initialize session state for company and position information and setting default values 
     if "level" not in st.session_state:
             st.session_state["level"] = "Junior"
     if "position" not in st.session_state:
             st.session_state["position"] = "Data Scientist"
     if "company" not in st.session_state:
             st.session_state["company"] = "Amazon"
-    
+
+    # Get personal information input
     st.session_state["name"] = st.text_input("What is your name?", max_chars=40, placeholder="Enter your name", value=st.session_state["name"])
     st.session_state["age"] = st.number_input("What is your age?", min_value=0, max_value=120, value=st.session_state["age"])
     st.session_state["experience"] = st.text_area("What is your experience?", max_chars=200, placeholder="Describe your experience", value=st.session_state["experience"])
     st.session_state["skills"] = st.text_area("What are your skills?", max_chars=200, placeholder="List your skills", value=st.session_state["skills"])
 
+    # Company and Position Section
+    st.subheader("Company and Position", divider="rainbow")
     col1, col2 = st.columns(2)
     with col1:
         st.session_state["level"] = st.radio("What is your level?", options=["Junior", "Mid", "Senior"],key="visibility", index=0)
@@ -56,6 +64,7 @@ if not st.session_state.setup_complete:
     if st.button("Complete Setup", on_click=complete_setup):
         st.write("Setup complete. Starting interview...")
 
+# Interview phase
 if st.session_state.setup_complete and not st.session_state.chat_complete and not st.session_state.feedback_shown:
       
     st.info(
@@ -78,33 +87,33 @@ if st.session_state.setup_complete and not st.session_state.chat_complete and no
         }]
     
    
-   
-
+    # Display chat messages
     for message in st.session_state.messages:
         if(message["role"] != "system"):
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-
+    # Handle user input and OpenAI response
+    # Put a max_chars limit
     if st.session_state.user_message_count < 5:
        if prompt := st.chat_input("Your answer." , max_chars=1000):
-        st.session_state.messages.append({"role":"user", "content": prompt})
-        with st.chat_message("user"):
-         st.markdown(prompt)
+            st.session_state.messages.append({"role":"user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-    if st.session_state.user_message_count < 4:
-        with st.chat_message("assistant"):
+            if st.session_state.user_message_count < 4:
+                with st.chat_message("assistant"):
                     stream = client.chat.completions.create(
                         model=st.session_state["openai_model"],
-                        messages=[
-                            {"role": m["role"], "content": m["content"]}
-                            for m in st.session_state.messages
-                            ],
-                            stream=True,
-                        )
+                            messages=[
+                                {"role": m["role"], "content": m["content"]}
+                                for m in st.session_state.messages
+                                 ],
+                                stream=True,
+                                )
                     response = st.write_stream(stream)
                     st.session_state.messages.append({"role": "assistant", "content": response})
-                    # Increment the user message count
-                    st.session_state.user_message_count += 1
+            # Increment the user message count
+            st.session_state.user_message_count += 1
     
     # Check if the user message count reaches 5
     if st.session_state.user_message_count >= 5:
@@ -143,6 +152,6 @@ if st.session_state.feedback_shown:
 
     st.write(feedback_completion.choices[0].message.content)
 
-# Button to restart the interview
+    # Button to restart the interview
     if st.button("Restart Interview", type="primary"):
             streamlit_js_eval(js_expressions="parent.window.location.reload()")
