@@ -130,7 +130,7 @@ if st.session_state.chat_complete and not st.session_state.feedback_shown:
 if st.session_state.feedback_shown:
     st.subheader("Feedback")
 
-    conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.messages])
+    conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.messages if msg['role'] != 'system'])
 
     # Initialize new OpenAI client instance for feedback
     feedback_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -154,4 +154,5 @@ if st.session_state.feedback_shown:
 
     # Button to restart the interview
     if st.button("Restart Interview", type="primary"):
-            streamlit_js_eval(js_expressions="parent.window.location.reload()")
+        st.session_state.clear()
+        st.rerun()
